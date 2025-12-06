@@ -140,7 +140,7 @@ class FPSCamera:
         """Launch player into the air for bird's eye view"""
         if not self.is_launched:
             self.is_launched = True
-            self.launch_velocity = 8.0  # Initial upward velocity
+            self.launch_velocity = 12.0  # Initial upward velocity for better aerial view
 
     def update_launch(self, dt):
         """Update launch physics"""

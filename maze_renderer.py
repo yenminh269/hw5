@@ -32,46 +32,50 @@ class MazeRenderer:
         self.create_walls_display_list()
 
     def create_brick_texture(self):
-        """Create a procedural brick texture"""
-        width, height = 64, 64
+        """Create a procedural brick texture - higher resolution for crisp look"""
+        width, height = 128, 128
         surface = pygame.Surface((width, height))
 
-        # Base brick color
-        brick_color = (150, 80, 60)
-        mortar_color = (200, 200, 200)
+        # Base brick color - warmer tones
+        brick_color = (160, 90, 70)
+        mortar_color = (180, 175, 165)
 
         surface.fill(mortar_color)
 
-        # Draw bricks
-        brick_height = 16
-        brick_width = 32
+        # Draw bricks - larger for cleaner look
+        brick_height = 32
+        brick_width = 64
 
         for row in range(0, height, brick_height):
             offset = brick_width // 2 if (row // brick_height) % 2 else 0
             for col in range(-offset, width, brick_width):
                 # Add some color variation
-                variation = random.randint(-20, 20)
+                variation = random.randint(-15, 15)
                 color = tuple(max(0, min(255, c + variation)) for c in brick_color)
 
                 pygame.draw.rect(surface, color,
-                               (col + 1, row + 1, brick_width - 2, brick_height - 2))
+                               (col + 2, row + 2, brick_width - 4, brick_height - 4))
 
         return self.load_texture_from_surface(surface)
 
     def create_floor_texture(self):
-        """Create a procedural floor texture"""
-        width, height = 64, 64
+        """Create a procedural floor texture - stone tiles"""
+        width, height = 128, 128
         surface = pygame.Surface((width, height))
 
-        # Checkered pattern
-        tile_size = 32
-        color1 = (80, 80, 90)
-        color2 = (60, 60, 70)
+        # Stone tile pattern - cleaner colors
+        tile_size = 64
+        color1 = (100, 100, 110)
+        color2 = (75, 75, 85)
+        grout_color = (50, 50, 55)
+
+        surface.fill(grout_color)
 
         for y in range(0, height, tile_size):
             for x in range(0, width, tile_size):
                 color = color1 if ((x // tile_size) + (y // tile_size)) % 2 == 0 else color2
-                pygame.draw.rect(surface, color, (x, y, tile_size, tile_size))
+                # Draw tile with grout border
+                pygame.draw.rect(surface, color, (x + 2, y + 2, tile_size - 4, tile_size - 4))
 
         return self.load_texture_from_surface(surface)
 
@@ -92,7 +96,7 @@ class MazeRenderer:
         return self.load_texture_from_surface(surface)
 
     def load_texture_from_surface(self, surface):
-        """Convert pygame surface to OpenGL texture"""
+        """Convert pygame surface to OpenGL texture with crisp filtering"""
         texture_data = pygame.image.tostring(surface, "RGB", 1)
         width = surface.get_width()
         height = surface.get_height()
@@ -105,8 +109,9 @@ class MazeRenderer:
 
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        # Use GL_NEAREST for crisp, pixel-perfect textures (no blur)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
 
         return texture_id
 
@@ -142,8 +147,7 @@ class MazeRenderer:
         # Render floor
         self.render_floor()
 
-        # Render ceiling
-        self.render_ceiling()
+        # Ceiling removed to allow aerial view when launched
 
         # Render walls using display list
         if self.walls_display_list:
@@ -217,38 +221,74 @@ class MazeRenderer:
         glDisable(GL_TEXTURE_2D)
 
     def draw_wall(self, x1, z1, x2, z2, direction):
-        """Draw a single wall segment"""
-        # Calculate normal based on direction
+        """Draw a thick 3D wall segment"""
+        thickness = 0.08  # Wall thickness
+
+        # Calculate offset based on direction for 3D depth
         if direction == 'N':
-            normal = (0, 0, -1)
+            # Wall along X axis at low Z
+            self.draw_wall_box(x1, z1 - thickness/2, x2, z1 + thickness/2)
         elif direction == 'S':
-            normal = (0, 0, 1)
+            # Wall along X axis at high Z
+            self.draw_wall_box(x2, z2 - thickness/2, x1, z2 + thickness/2)
         elif direction == 'E':
-            normal = (1, 0, 0)
+            # Wall along Z axis at high X
+            self.draw_wall_box(x1 - thickness/2, z1, x1 + thickness/2, z2)
         elif direction == 'W':
-            normal = (-1, 0, 0)
-        else:
-            normal = (0, 0, 1)
+            # Wall along Z axis at low X
+            self.draw_wall_box(x1 - thickness/2, z2, x1 + thickness/2, z1)
 
+    def draw_wall_box(self, x1, z1, x2, z2):
+        """Draw a 3D box for wall with all faces"""
+        h = self.wall_height
+
+        # Ensure correct ordering
+        min_x, max_x = min(x1, x2), max(x1, x2)
+        min_z, max_z = min(z1, z2), max(z1, z2)
+
+        # Front face (facing -Z)
         glBegin(GL_QUADS)
-        glNormal3f(*normal)
+        glNormal3f(0, 0, -1)
+        glTexCoord2f(0, 0); glVertex3f(min_x, 0, min_z)
+        glTexCoord2f(1, 0); glVertex3f(max_x, 0, min_z)
+        glTexCoord2f(1, 1); glVertex3f(max_x, h, min_z)
+        glTexCoord2f(0, 1); glVertex3f(min_x, h, min_z)
+        glEnd()
 
-        # Bottom left
-        glTexCoord2f(0, 0)
-        glVertex3f(x1, 0, z1)
+        # Back face (facing +Z)
+        glBegin(GL_QUADS)
+        glNormal3f(0, 0, 1)
+        glTexCoord2f(0, 0); glVertex3f(max_x, 0, max_z)
+        glTexCoord2f(1, 0); glVertex3f(min_x, 0, max_z)
+        glTexCoord2f(1, 1); glVertex3f(min_x, h, max_z)
+        glTexCoord2f(0, 1); glVertex3f(max_x, h, max_z)
+        glEnd()
 
-        # Bottom right
-        glTexCoord2f(1, 0)
-        glVertex3f(x2, 0, z2)
+        # Left face (facing -X)
+        glBegin(GL_QUADS)
+        glNormal3f(-1, 0, 0)
+        glTexCoord2f(0, 0); glVertex3f(min_x, 0, max_z)
+        glTexCoord2f(1, 0); glVertex3f(min_x, 0, min_z)
+        glTexCoord2f(1, 1); glVertex3f(min_x, h, min_z)
+        glTexCoord2f(0, 1); glVertex3f(min_x, h, max_z)
+        glEnd()
 
-        # Top right
-        glTexCoord2f(1, 1)
-        glVertex3f(x2, self.wall_height, z2)
+        # Right face (facing +X)
+        glBegin(GL_QUADS)
+        glNormal3f(1, 0, 0)
+        glTexCoord2f(0, 0); glVertex3f(max_x, 0, min_z)
+        glTexCoord2f(1, 0); glVertex3f(max_x, 0, max_z)
+        glTexCoord2f(1, 1); glVertex3f(max_x, h, max_z)
+        glTexCoord2f(0, 1); glVertex3f(max_x, h, min_z)
+        glEnd()
 
-        # Top left
-        glTexCoord2f(0, 1)
-        glVertex3f(x1, self.wall_height, z1)
-
+        # Top face
+        glBegin(GL_QUADS)
+        glNormal3f(0, 1, 0)
+        glTexCoord2f(0, 0); glVertex3f(min_x, h, min_z)
+        glTexCoord2f(1, 0); glVertex3f(max_x, h, min_z)
+        glTexCoord2f(1, 1); glVertex3f(max_x, h, max_z)
+        glTexCoord2f(0, 1); glVertex3f(min_x, h, max_z)
         glEnd()
 
     def highlight_goal(self):

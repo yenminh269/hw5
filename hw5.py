@@ -52,9 +52,22 @@ class MazeGame:
         self.elapsed_time = 0
         self.running = True
         self.paused = False
+        self.game_won = False
+        self.win_time = 0
+
+        # On-screen notification system
+        self.notifications = []  # List of {text, color, expire_time, size}
+        self.large_font = pygame.font.SysFont("Arial", 32, bold=True)
+        self.title_font = pygame.font.SysFont("Arial", 64, bold=True)
+
+        # Mouse sensitivity (adjustable with +/-)
+        self.mouse_sensitivity = 0.2
 
         # Generate initial maze
         self.generate_new_maze()
+
+        # Show welcome message
+        self.show_notification("Navigate to the GREEN goal! Press H for hints", (200, 255, 200), 4.0, large=True)
 
     def setup_opengl(self):
         """Configure OpenGL settings"""
@@ -80,13 +93,8 @@ class MazeGame:
         gluPerspective(70, (self.display[0] / self.display[1]), 0.1, 100.0)
         glMatrixMode(GL_MODELVIEW)
 
-        # Enable fog for atmosphere
-        glEnable(GL_FOG)
-        glFogi(GL_FOG_MODE, GL_LINEAR)
-        glFogfv(GL_FOG_COLOR, [0.1, 0.1, 0.15, 1])
-        glFogf(GL_FOG_DENSITY, 0.35)
-        glFogf(GL_FOG_START, 10.0)
-        glFogf(GL_FOG_END, 40.0)
+        # Disable fog for clearer visuals (was causing blur)
+        glDisable(GL_FOG)
 
     def generate_new_maze(self):
         """Generate a new random maze"""
@@ -104,9 +112,11 @@ class MazeGame:
         # Initialize special tiles
         self.special_tiles = SpecialTileManager(self.maze, self.maze_size)
 
-        # Reset timer
+        # Reset timer and win state
         self.start_time = time.time()
         self.elapsed_time = 0
+        self.game_won = False
+        self.notifications = []
 
     def reset_position(self):
         """Reset player to start position without regenerating maze"""
@@ -114,6 +124,18 @@ class MazeGame:
         self.start_time = time.time()
         self.elapsed_time = 0
         self.special_tiles.reset_effects()
+        self.game_won = False
+        self.notifications = []
+
+    def show_notification(self, text, color=(255, 255, 255), duration=2.0, large=False):
+        """Add an on-screen notification message (only 1 at a time)"""
+        # Clear existing notifications - only show 1 at a time
+        self.notifications = [{
+            'text': text,
+            'color': color,
+            'expire_time': time.time() + duration,
+            'large': large
+        }]
 
     def handle_events(self):
         """Handle keyboard and mouse events"""
@@ -127,20 +149,34 @@ class MazeGame:
                 elif event.key == pygame.K_r:
                     # Reset to start
                     self.reset_position()
-                    print("Position reset!")
+                    self.show_notification("Position Reset!", (255, 200, 100), 2.0, large=True)
                 elif event.key == pygame.K_n:
                     # Generate new maze
                     self.generate_new_maze()
-                    print("New maze generated!")
+                    self.show_notification("New Maze Generated!", (100, 255, 200), 2.0, large=True)
                 elif event.key == pygame.K_h:
                     # Use hint (if available)
-                    self.special_tiles.use_hint()
+                    if self.special_tiles.hints_remaining > 0:
+                        self.special_tiles.use_hint()
+                        self.show_notification(f"Hint Activated! ({self.special_tiles.hints_remaining} left)", (255, 150, 50), 2.0)
+                    else:
+                        self.show_notification("No hints remaining!", (255, 100, 100), 1.5)
                 elif event.key == pygame.K_p:
                     # Pause/unpause
                     self.paused = not self.paused
                     # Recenter mouse when unpausing
                     if not self.paused:
                         pygame.mouse.set_pos(self.display_center)
+                elif event.key == pygame.K_EQUALS or event.key == pygame.K_PLUS:
+                    # Increase mouse sensitivity
+                    self.mouse_sensitivity = min(0.5, self.mouse_sensitivity + 0.05)
+                    self.camera.mouse_sensitivity = self.mouse_sensitivity
+                    self.show_notification(f"Sensitivity: {self.mouse_sensitivity:.2f}", (200, 200, 255), 1.0)
+                elif event.key == pygame.K_MINUS:
+                    # Decrease mouse sensitivity
+                    self.mouse_sensitivity = max(0.05, self.mouse_sensitivity - 0.05)
+                    self.camera.mouse_sensitivity = self.mouse_sensitivity
+                    self.show_notification(f"Sensitivity: {self.mouse_sensitivity:.2f}", (200, 200, 255), 1.0)
 
             if event.type == pygame.MOUSEMOTION and not self.paused:
                 # Handle mouse movement for camera rotation
@@ -207,17 +243,17 @@ class MazeGame:
         """Apply special tile effect to player"""
         if effect['type'] == 'trap_reset':
             self.reset_position()
-            print("TRAP! Reset to start!")
+            self.show_notification("TRAP! Back to Start!", (255, 50, 50), 2.5, large=True)
         elif effect['type'] == 'trap_turn':
             self.camera.yaw += 90
-            print("Dizzy! Turned 90 degrees!")
+            self.show_notification("DIZZY! Turned 90°", (200, 50, 200), 2.0, large=True)
         elif effect['type'] == 'powerup_launch':
             self.camera.launch()
-            print("LAUNCH! Bird's eye view!")
+            self.show_notification("LAUNCHED! Look around!", (255, 255, 50), 3.0, large=True)
         elif effect['type'] == 'speed_slow':
-            print("Slow zone...")
+            self.show_notification("Slow Zone...", (100, 150, 255), 1.5)
         elif effect['type'] == 'speed_fast':
-            print("Speed boost!")
+            self.show_notification("SPEED BOOST!", (50, 255, 50), 1.5)
 
     def check_win_condition(self):
         """Check if player reached the goal"""
@@ -229,12 +265,99 @@ class MazeGame:
 
     def handle_win(self):
         """Handle winning the maze"""
-        print(f"\n{'='*50}")
-        print(f"CONGRATULATIONS! You completed the maze!")
-        print(f"Time: {self.elapsed_time:.2f} seconds")
-        print(f"{'='*50}\n")
-        print("Press N for new maze, R to retry, or ESC to quit")
+        self.game_won = True
+        self.win_time = self.elapsed_time
         self.paused = True
+
+    def render_win_screen(self):
+        """Render the victory screen overlay"""
+        # Switch to 2D rendering
+        glMatrixMode(GL_PROJECTION)
+        glPushMatrix()
+        glLoadIdentity()
+        glOrtho(0, self.display[0], self.display[1], 0, -1, 1)
+        glMatrixMode(GL_MODELVIEW)
+        glPushMatrix()
+        glLoadIdentity()
+
+        glDisable(GL_DEPTH_TEST)
+        glDisable(GL_LIGHTING)
+
+        # Semi-transparent dark overlay
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glColor4f(0, 0, 0, 0.7)
+        glBegin(GL_QUADS)
+        glVertex2f(0, 0)
+        glVertex2f(self.display[0], 0)
+        glVertex2f(self.display[0], self.display[1])
+        glVertex2f(0, self.display[1])
+        glEnd()
+
+        # Draw decorative border
+        pulse = 0.5 + 0.5 * math.sin(time.time() * 3)
+        glColor4f(0.2 * pulse, 0.8 * pulse, 0.2 * pulse, 0.8)
+        border = 50
+        glLineWidth(4)
+        glBegin(GL_LINE_LOOP)
+        glVertex2f(border, border)
+        glVertex2f(self.display[0] - border, border)
+        glVertex2f(self.display[0] - border, self.display[1] - border)
+        glVertex2f(border, self.display[1] - border)
+        glEnd()
+        glLineWidth(1)
+
+        glDisable(GL_BLEND)
+
+        # Center coordinates
+        center_x = self.display[0] // 2
+        center_y = self.display[1] // 2
+
+        # Draw "MAZE COMPLETE!" title
+        title_text = "MAZE COMPLETE!"
+        title_surface = self.title_font.render(title_text, True, (50, 255, 50))
+        title_x = center_x - title_surface.get_width() // 2
+        title_y = center_y - 100
+
+        # Draw title with glow effect
+        glow_surface = self.title_font.render(title_text, True, (100, 255, 100))
+        self.draw_text_at(glow_surface, title_x - 2, title_y - 2)
+        self.draw_text_at(title_surface, title_x, title_y)
+
+        # Draw time
+        time_text = f"Time: {self.win_time:.2f} seconds"
+        time_surface = self.large_font.render(time_text, True, (255, 255, 100))
+        time_x = center_x - time_surface.get_width() // 2
+        self.draw_text_at(time_surface, time_x, center_y - 20)
+
+        # Draw instructions
+        instructions = [
+            ("Press N for New Maze", (100, 200, 255)),
+            ("Press R to Retry", (255, 200, 100)),
+            ("Press ESC to Quit", (200, 200, 200))
+        ]
+        for i, (text, color) in enumerate(instructions):
+            inst_surface = self.font.render(text, True, color)
+            inst_x = center_x - inst_surface.get_width() // 2
+            self.draw_text_at(inst_surface, inst_x, center_y + 40 + i * 35)
+
+        # Restore 3D rendering
+        glEnable(GL_DEPTH_TEST)
+        glEnable(GL_LIGHTING)
+        glMatrixMode(GL_PROJECTION)
+        glPopMatrix()
+        glMatrixMode(GL_MODELVIEW)
+        glPopMatrix()
+
+    def draw_text_at(self, surface, x, y):
+        """Helper to draw a pygame surface at screen position"""
+        text_data = pygame.image.tostring(surface, "RGBA", True)
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glWindowPos2d(x, self.display[1] - y - surface.get_height())
+        glDrawPixels(surface.get_width(), surface.get_height(),
+                    GL_RGBA, GL_UNSIGNED_BYTE, text_data)
+        glDisable(GL_BLEND)
 
     def render(self):
         """Render the game"""
@@ -255,6 +378,10 @@ class MazeGame:
 
         # Render HUD (timer, position, hints)
         self.render_hud()
+
+        # Render win screen overlay if game won
+        if self.game_won:
+            self.render_win_screen()
 
         pygame.display.flip()
 
@@ -312,18 +439,35 @@ class MazeGame:
         glBegin(GL_QUADS)
         glVertex2f(10, 10)
         glVertex2f(250, 10)
-        glVertex2f(250, 125)
-        glVertex2f(10, 125)
+        glVertex2f(250, 150)
+        glVertex2f(10, 150)
         glEnd()
 
+        # Draw crosshair in center
+        cx, cy = self.display[0] // 2, self.display[1] // 2
+        glColor4f(1, 1, 1, 0.7)
+        glLineWidth(2)
+        glBegin(GL_LINES)
+        glVertex2f(cx - 10, cy)
+        glVertex2f(cx + 10, cy)
+        glVertex2f(cx, cy - 10)
+        glVertex2f(cx, cy + 10)
+        glEnd()
+        glLineWidth(1)
+
         glDisable(GL_BLEND)
+
+        # Calculate distance to goal
+        goal_x, goal_z = self.maze_size - 0.5, self.maze_size - 0.5
+        distance = math.sqrt((self.camera.x - goal_x)**2 + (self.camera.z - goal_z)**2)
 
         # Draw text using optimized method
         fps = self.clock.get_fps()
         self.draw_text_optimized(f"FPS: {fps:.1f}", 20, 20, (100, 255, 100))
         self.draw_text_optimized(f"Time: {self.elapsed_time:.1f}s", 20, 45, (255, 255, 255))
         self.draw_text_optimized(f"Position: ({int(self.camera.x)}, {int(self.camera.z)})", 20, 70, (255, 200, 100))
-        self.draw_text_optimized(f"Hints: {self.special_tiles.hints_remaining}", 20, 95, (255, 255, 255))
+        self.draw_text_optimized(f"Distance: {distance:.1f}", 20, 95, (100, 255, 100) if distance < 5 else (255, 255, 255))
+        self.draw_text_optimized(f"Hints: {self.special_tiles.hints_remaining}", 20, 120, (255, 255, 255))
 
         # Speed indicator
         if self.special_tiles.speed_modifier != 1.0:
@@ -331,9 +475,13 @@ class MazeGame:
             color = (0, 255, 0) if self.special_tiles.speed_modifier > 1.0 else (255, 128, 0)
             self.draw_text_optimized(speed_text, 20, 120, color)
 
-        # Launch indicator
+        # Launch indicator and minimap when airborne
         if self.camera.is_launched:
             self.draw_text_optimized("AIRBORNE!", 20, 145, (255, 255, 0))
+            self.render_minimap()
+
+        # Render center notifications
+        self.render_notifications()
 
         # Instructions at bottom
         if self.paused:
@@ -341,11 +489,11 @@ class MazeGame:
 
         # Controls reminder (small, bottom-right)
         controls = [
-            "WASD: Move | Mouse: Look",
-            "R: Reset | N: New Maze | H: Hint"
+            "WASD: Move | Mouse: Look | +/-: Sensitivity",
+            "R: Reset | N: New Maze | H: Hint | P: Pause"
         ]
         for i, ctrl in enumerate(controls):
-            self.draw_text_optimized(ctrl, self.display[0] - 350, self.display[1] - 60 + i*25, (180, 180, 180))
+            self.draw_text_optimized(ctrl, self.display[0] - 420, self.display[1] - 60 + i*25, (180, 180, 180))
 
         # Restore 3D rendering
         glEnable(GL_DEPTH_TEST)
@@ -355,6 +503,63 @@ class MazeGame:
         glPopMatrix()
         glMatrixMode(GL_MODELVIEW)
         glPopMatrix()
+
+    def render_notifications(self):
+        """Render center-screen notification messages"""
+        current_time = time.time()
+
+        # Remove expired notifications
+        self.notifications = [n for n in self.notifications if n['expire_time'] > current_time]
+
+        # Render active notifications in center of screen
+        center_x = self.display[0] // 2
+        start_y = self.display[1] // 3
+
+        for i, notif in enumerate(self.notifications):
+            # Calculate fade based on remaining time
+            remaining = notif['expire_time'] - current_time
+            alpha = min(1.0, remaining / 0.5)  # Fade out in last 0.5 seconds
+
+            # Choose font based on size
+            font = self.large_font if notif.get('large') else self.font
+
+            # Render with alpha
+            color = notif['color']
+            faded_color = (
+                int(color[0] * alpha),
+                int(color[1] * alpha),
+                int(color[2] * alpha)
+            )
+
+            # Create text surface
+            text_surface = font.render(notif['text'], True, faded_color)
+            text_width = text_surface.get_width()
+
+            # Center horizontally
+            x = center_x - text_width // 2
+            y = start_y + i * 45
+
+            # Draw background box for better visibility
+            glEnable(GL_BLEND)
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+            glColor4f(0, 0, 0, 0.5 * alpha)
+            padding = 10
+            glBegin(GL_QUADS)
+            glVertex2f(x - padding, y - 5)
+            glVertex2f(x + text_width + padding, y - 5)
+            glVertex2f(x + text_width + padding, y + text_surface.get_height() + 5)
+            glVertex2f(x - padding, y + text_surface.get_height() + 5)
+            glEnd()
+            glDisable(GL_BLEND)
+
+            # Draw the text
+            text_data = pygame.image.tostring(text_surface, "RGBA", True)
+            glEnable(GL_BLEND)
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+            glWindowPos2d(x, self.display[1] - y - text_surface.get_height())
+            glDrawPixels(text_surface.get_width(), text_surface.get_height(),
+                        GL_RGBA, GL_UNSIGNED_BYTE, text_data)
+            glDisable(GL_BLEND)
 
     def draw_text_optimized(self, text, x, y, color=(255, 255, 255)):
         """Draw 2D text on screen using optimized method"""
@@ -372,6 +577,97 @@ class MazeGame:
 
         glDisable(GL_BLEND)
         glEnable(GL_LIGHTING)
+
+    def render_minimap(self):
+        """Render a minimap in the corner when airborne"""
+        # Minimap settings
+        map_size = 200
+        map_x = self.display[0] - map_size - 20
+        map_y = 20
+        cell_size = map_size / self.maze_size
+
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
+        # Draw background
+        glColor4f(0, 0, 0, 0.7)
+        glBegin(GL_QUADS)
+        glVertex2f(map_x - 5, map_y - 5)
+        glVertex2f(map_x + map_size + 5, map_y - 5)
+        glVertex2f(map_x + map_size + 5, map_y + map_size + 5)
+        glVertex2f(map_x - 5, map_y + map_size + 5)
+        glEnd()
+
+        # Draw maze walls
+        glColor4f(0.6, 0.4, 0.3, 1.0)
+        glLineWidth(2)
+        for y in range(self.maze_size):
+            for x in range(self.maze_size):
+                cell = self.maze[y][x]
+                cx = map_x + x * cell_size
+                cy = map_y + y * cell_size
+
+                glBegin(GL_LINES)
+                if cell['N']:
+                    glVertex2f(cx, cy)
+                    glVertex2f(cx + cell_size, cy)
+                if cell['E']:
+                    glVertex2f(cx + cell_size, cy)
+                    glVertex2f(cx + cell_size, cy + cell_size)
+                if cell['S']:
+                    glVertex2f(cx, cy + cell_size)
+                    glVertex2f(cx + cell_size, cy + cell_size)
+                if cell['W']:
+                    glVertex2f(cx, cy)
+                    glVertex2f(cx, cy + cell_size)
+                glEnd()
+
+        # Draw special tiles
+        for (tx, ty), tile_type in self.special_tiles.tiles.items():
+            cx = map_x + tx * cell_size + cell_size/2
+            cy = map_y + ty * cell_size + cell_size/2
+
+            if tile_type == 'trap_reset':
+                glColor4f(1, 0, 0, 0.8)
+            elif tile_type == 'trap_turn':
+                glColor4f(0.8, 0, 0.8, 0.8)
+            elif tile_type == 'powerup_launch':
+                glColor4f(1, 1, 0, 0.8)
+            elif tile_type == 'speed_slow':
+                glColor4f(0, 0, 1, 0.6)
+            elif tile_type == 'speed_fast':
+                glColor4f(0, 1, 0, 0.8)
+            else:
+                continue
+
+            # Draw small dot
+            glPointSize(4)
+            glBegin(GL_POINTS)
+            glVertex2f(cx, cy)
+            glEnd()
+
+        # Draw goal (green)
+        goal_x = map_x + (self.maze_size - 0.5) * cell_size
+        goal_y = map_y + (self.maze_size - 0.5) * cell_size
+        glColor4f(0, 1, 0, 1.0)
+        glPointSize(8)
+        glBegin(GL_POINTS)
+        glVertex2f(goal_x, goal_y)
+        glEnd()
+
+        # Draw player position (white with pulse)
+        pulse = 0.5 + 0.5 * math.sin(time.time() * 5)
+        player_x = map_x + self.camera.x * cell_size
+        player_y = map_y + self.camera.z * cell_size
+        glColor4f(1, 1, 1, pulse)
+        glPointSize(6)
+        glBegin(GL_POINTS)
+        glVertex2f(player_x, player_y)
+        glEnd()
+
+        glPointSize(1)
+        glLineWidth(1)
+        glDisable(GL_BLEND)
 
     def run(self):
         """Main game loop"""
