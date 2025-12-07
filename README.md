@@ -4,33 +4,32 @@ An interactive 3D maze game featuring FPS controls, special tiles, and dynamic g
 
 ## Features Implemented
 
-### Core Requirements ✓
+### 1. Core Requirements 
 - **Maze Generation**: Random 10x10+ maze (default 15x15) using recursive backtracking algorithm
 - **FPS Controls**:
   - WASD for movement
   - Mouse for camera rotation
   - Smooth first-person perspective
+- **Reset Mechanism**: Press 'R' to start over at the entrance to the maze (time and position reset)
+- **Regenerate Maze**: Press 'N' to restart and re-randomize the maze (time and position reset)
+- **Pause System**: Press 'P' to pause/unpause
 - **Collision Detection**: Cannot clip through walls or floor
 - **Timer Display**: Tracks and displays elapsed time in top-left corner
 - **Position Display**: Shows current cell position (x, z)
-- **Reset Mechanism**: Press 'R' to reset to entrance (time and position reset)
-- **Regenerate Maze**: Press 'N' to create new random maze
 
-### Special Tiles & Effects ✓
+### 2. Special Tiles & Effects 
 
 #### Traps (Hinder Player)
 1. **Red Tiles** (Dead Ends): Reset player to start position
 2. **Purple Tiles** (Dead Ends): Turn player 90 degrees when entered
+3. **Blue Tiles** (Off Main Path): Slow zones (0.4x speed)
 
 #### Power-ups (Assist Player)
-1. **Green Tiles** (Main Path): Speed boost zones (1.8x speed)
-2. **Yellow Tiles** (Launch Pads): Launch player into the air for aerial maze view
+1. **Green Tiles** (Main Path): Speed up the player along the main path (1.8x speed)
+2. **Yellow Tiles** (Launch Pads): Launch player above the wall to have a look at the maze
 3. **Orange Hint System**: Press 'H' to reveal solution path (limited to 3 hints, 5 seconds each)
 
-#### Environmental Effects
-1. **Blue Tiles** (Off Main Path): Slow zones (0.4x speed)
-
-### Visual Features ✓
+### 3. Visual Features 
 - **Textured Walls**: Procedural brick texture
 - **Textured Floor**: Checkered pattern
 - **Textured Ceiling**: Dark atmospheric ceiling
@@ -39,8 +38,7 @@ An interactive 3D maze game featuring FPS controls, special tiles, and dynamic g
 - **Lighting**: Two-light setup with fog for atmosphere
 - **HUD Elements**: FPS, time, position, hints, status indicators
 
-### Additional Features
-- **Pause System**: Press 'P' to pause/unpause
+### 4. Additional Features
 - **Launch Physics**: Gravity simulation for launch pads
 - **Solution Path**: BFS algorithm finds optimal path
 - **Smart Tile Placement**: Special tiles placed strategically
@@ -95,35 +93,10 @@ python hw5_submit.py
 - Launch physics with gravity simulation
 
 ### Maze Algorithm
-- Recursive backtracking creates perfect mazes
+- Recursive backtracking 
 - BFS pathfinding for solution
 - Dead-end detection for trap placement
 
-### Rendering
-- OpenGL with proper depth testing and lighting
-- Procedurally generated textures
-- Fog for atmospheric depth
-- Transparent overlays for special tiles
-
-## Requirements Met
-
-All assignment specifications have been implemented:
-
-✓ 10x10+ maze (15x15 default)
-✓ WASD movement
-✓ Mouse look controls
-✓ Reset mechanism (R key)
-✓ Regenerate maze (N key)
-✓ Wall collisions
-✓ Traps that reset player
-✓ Traps that turn player
-✓ Slow zones off path
-✓ Speed boosts on path
-✓ Launch for aerial view
-✓ Hint system with cooldown
-✓ Timer and position display
-✓ Textured walls and floor
-✓ Visual effects for special tiles
 
 ## Dependencies
 

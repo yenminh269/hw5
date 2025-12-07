@@ -1,26 +1,4 @@
 #!/usr/bin/env python3
-"""
-COSC 4370 Homework #5
-Interactive 3D Maze Game with FPS Controls
-
-Features:
-- 15x15 maze with recursive backtracking generation
-- WASD movement with mouse look (FPS controls)
-- Collision detection with walls
-- Special tiles: traps, speed zones, launch pads
-- Hint system showing solution path
-- Timer and position display
-- Reset (R) and regenerate maze (N) functionality
-
-Controls:
-  W/A/S/D - Move forward/left/backward/right
-  Mouse   - Look around
-  R       - Reset to entrance
-  N       - Generate new maze
-  H       - Use hint (3 available)
-  P       - Pause/unpause
-  ESC     - Quit
-"""
 
 import pygame
 from pygame.locals import *
