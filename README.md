@@ -49,21 +49,15 @@ An interactive 3D maze game featuring FPS controls, special tiles, and dynamic g
 ## File Structure
 
 ```
-hw5-files/
-├── hw5.py                  # Main game file (run this)
-├── fps_camera.py           # FPS camera with collision detection
-├── maze_generator.py       # Maze generation algorithm
-├── maze_renderer.py        # 3D rendering with textures
-├── special_tiles.py        # Special tiles and effects manager
-├── FPSExample.py          # Reference example
-├── MouseControlExample.py # Reference example
-└── README.md              # This file
+hw5/
+├── hw5_submit.py    # Main game file (run this)
+└── README.md        # This file
 ```
 
 ## How to Run
 
 ```bash
-python hw5.py
+python hw5_submit.py
 ```
 
 ## Controls
@@ -96,7 +90,6 @@ python hw5.py
 - Cannot clip through any walls
 
 ### Camera System
-- Based on FPSExample.py and MouseControlExample.py
 - Smooth mouse look with pitch limiting (-89° to +89°)
 - Velocity-based movement with delta time
 - Launch physics with gravity simulation
