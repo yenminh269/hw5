@@ -19,63 +19,92 @@ class MazeRenderer:
         self.floor_texture = self.create_floor_texture()
         self.ceiling_texture = self.create_ceiling_texture()
 
-        # Color variation for walls
+        # Color variation for hedge walls (vibrant green tones)
         self.wall_colors = {}
         for y in range(maze_size):
             for x in range(maze_size):
-                # Slight color variation
-                brightness = 0.8 + random.random() * 0.2
-                self.wall_colors[(x, y)] = (brightness, brightness, brightness)
+                # Brighter green variation for hedges
+                brightness = 0.85 + random.random() * 0.15
+                self.wall_colors[(x, y)] = (brightness * 0.7, brightness, brightness * 0.6)
 
         # Create display lists for performance optimization
         self.walls_display_list = None
         self.create_walls_display_list()
 
     def create_brick_texture(self):
-        """Create a procedural brick texture - higher resolution for crisp look"""
+        """Create a procedural hedge/tree texture for garden maze walls"""
         width, height = 128, 128
         surface = pygame.Surface((width, height))
 
-        # Base brick color - warmer tones
-        brick_color = (160, 90, 70)
-        mortar_color = (180, 175, 165)
+        # Brighter, more vibrant hedge green
+        base_green = (50, 130, 50)
+        surface.fill(base_green)
 
-        surface.fill(mortar_color)
+        # Add leaf clusters for organic look
+        for _ in range(350):
+            x = random.randint(0, width - 1)
+            y = random.randint(0, height - 1)
+            # Brighter, more varied greens
+            shade = random.randint(-30, 40)
+            leaf_color = (
+                max(30, min(100, 55 + shade)),
+                max(100, min(180, 140 + shade)),
+                max(30, min(90, 50 + shade))
+            )
+            size = random.randint(4, 10)
+            pygame.draw.circle(surface, leaf_color, (x, y), size)
 
-        # Draw bricks - larger for cleaner look
-        brick_height = 32
-        brick_width = 64
+        # Fewer, subtler shadows
+        for _ in range(30):
+            x = random.randint(0, width - 1)
+            y = random.randint(0, height - 1)
+            dark_color = (35, 80, 35)
+            pygame.draw.circle(surface, dark_color, (x, y), random.randint(3, 6))
 
-        for row in range(0, height, brick_height):
-            offset = brick_width // 2 if (row // brick_height) % 2 else 0
-            for col in range(-offset, width, brick_width):
-                # Add some color variation
-                variation = random.randint(-15, 15)
-                color = tuple(max(0, min(255, c + variation)) for c in brick_color)
-
-                pygame.draw.rect(surface, color,
-                               (col + 2, row + 2, brick_width - 4, brick_height - 4))
+        # More highlights for sunlit look
+        for _ in range(120):
+            x = random.randint(0, width - 1)
+            y = random.randint(0, height - 1)
+            light_color = (80, 170, 70)
+            pygame.draw.circle(surface, light_color, (x, y), random.randint(2, 5))
 
         return self.load_texture_from_surface(surface)
 
     def create_floor_texture(self):
-        """Create a procedural floor texture - stone tiles"""
+        """Create a procedural dirt/stone path texture"""
         width, height = 128, 128
         surface = pygame.Surface((width, height))
 
-        # Stone tile pattern - cleaner colors
-        tile_size = 64
-        color1 = (100, 100, 110)
-        color2 = (75, 75, 85)
-        grout_color = (50, 50, 55)
+        # Sandy/dirt path base color
+        base_color = (180, 160, 130)
+        surface.fill(base_color)
 
-        surface.fill(grout_color)
+        # Add texture variation - dirt and pebbles
+        for _ in range(400):
+            x = random.randint(0, width - 1)
+            y = random.randint(0, height - 1)
+            shade = random.randint(-30, 30)
+            dirt_color = (
+                max(130, min(210, 175 + shade)),
+                max(120, min(190, 155 + shade)),
+                max(90, min(160, 125 + shade))
+            )
+            size = random.randint(2, 5)
+            pygame.draw.circle(surface, dirt_color, (x, y), size)
 
-        for y in range(0, height, tile_size):
-            for x in range(0, width, tile_size):
-                color = color1 if ((x // tile_size) + (y // tile_size)) % 2 == 0 else color2
-                # Draw tile with grout border
-                pygame.draw.rect(surface, color, (x + 2, y + 2, tile_size - 4, tile_size - 4))
+        # Add some darker spots
+        for _ in range(60):
+            x = random.randint(0, width - 1)
+            y = random.randint(0, height - 1)
+            dark_color = (140, 120, 90)
+            pygame.draw.circle(surface, dark_color, (x, y), random.randint(3, 6))
+
+        # Add some lighter highlights
+        for _ in range(50):
+            x = random.randint(0, width - 1)
+            y = random.randint(0, height - 1)
+            light_color = (200, 185, 160)
+            pygame.draw.circle(surface, light_color, (x, y), random.randint(2, 4))
 
         return self.load_texture_from_surface(surface)
 

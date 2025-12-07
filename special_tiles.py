@@ -166,17 +166,17 @@ class SpecialTileManager:
             # Animate tiles
             pulse = 0.5 + 0.5 * math.sin(self.animation_time * 3)
 
-            # Set color based on type
+            # Set color based on type - bright and visible
             if tile_type == self.TRAP_RESET:
-                color = (1.0, 0.0, 0.0, 0.6 * pulse)  # Red
+                color = (1.0, 0.2, 0.2, 0.7 * pulse)  # Bright Red
             elif tile_type == self.TRAP_TURN:
-                color = (0.8, 0.0, 0.8, 0.6 * pulse)  # Purple
+                color = (0.9, 0.2, 0.9, 0.7 * pulse)  # Bright Purple
             elif tile_type == self.POWERUP_LAUNCH:
-                color = (1.0, 1.0, 0.0, 0.6 * pulse)  # Yellow
+                color = (1.0, 0.9, 0.2, 0.8 * pulse)  # Bright Yellow
             elif tile_type == self.SPEED_SLOW:
-                color = (0.0, 0.0, 0.8, 0.3 * pulse)  # Blue
+                color = (0.3, 0.5, 1.0, 0.5 * pulse)  # Bright Blue
             elif tile_type == self.SPEED_FAST:
-                color = (0.0, 1.0, 0.0, 0.5 * pulse)  # Green
+                color = (0.0, 1.0, 1.0, 0.8 * pulse)  # Cyan - stands out!
             else:
                 continue
 
@@ -231,13 +231,13 @@ class SpecialTileManager:
         if (x, y) in self.tiles:
             tile_type = self.tiles[(x, y)]
             if tile_type == self.TRAP_RESET:
-                return (0.8, 0.2, 0.2)
+                return (1.0, 0.2, 0.2)
             elif tile_type == self.TRAP_TURN:
-                return (0.6, 0.2, 0.6)
+                return (0.9, 0.2, 0.9)
             elif tile_type == self.POWERUP_LAUNCH:
-                return (0.9, 0.9, 0.3)
+                return (1.0, 0.9, 0.2)
             elif tile_type == self.SPEED_SLOW:
-                return (0.3, 0.3, 0.8)
+                return (0.3, 0.5, 1.0)
             elif tile_type == self.SPEED_FAST:
-                return (0.3, 0.8, 0.3)
+                return (0.0, 1.0, 1.0)  # Cyan
         return None

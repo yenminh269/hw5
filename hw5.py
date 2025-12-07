@@ -21,7 +21,7 @@ class MazeGame:
         pygame.init()
         self.display = (1200, 800)
         self.screen = pygame.display.set_mode(self.display, DOUBLEBUF | OPENGL)
-        pygame.display.set_caption("3D Maze Explorer - COSC 4370 HW5")
+        pygame.display.set_caption("Garden Hedge Maze - COSC 4370 HW5")
 
         # Hide and capture mouse
         pygame.mouse.set_visible(False)
@@ -77,23 +77,26 @@ class MazeGame:
         glEnable(GL_COLOR_MATERIAL)
         glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)
 
-        # Setup lights
-        glEnable(GL_LIGHT0)
-        glLightfv(GL_LIGHT0, GL_AMBIENT, [0.3, 0.3, 0.3, 1])
-        glLightfv(GL_LIGHT0, GL_DIFFUSE, [0.8, 0.8, 0.8, 1])
-        glLightfv(GL_LIGHT0, GL_POSITION, [0, 0, 10, 1])
+        # Set beautiful blue sky background
+        glClearColor(0.53, 0.81, 0.98, 1.0)  # Clear sky blue
 
-        # Add a second light for better visibility
+        # Setup lights - bright sunny day feel
+        glEnable(GL_LIGHT0)
+        glLightfv(GL_LIGHT0, GL_AMBIENT, [0.5, 0.5, 0.45, 1])
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, [1.0, 0.98, 0.9, 1])  # Warm sunlight
+        glLightfv(GL_LIGHT0, GL_POSITION, [1, 10, 1, 0])  # High sun
+
+        # Add a second light for fill - softer
         glEnable(GL_LIGHT1)
-        glLightfv(GL_LIGHT1, GL_AMBIENT, [0.2, 0.2, 0.2, 1])
-        glLightfv(GL_LIGHT1, GL_DIFFUSE, [0.5, 0.5, 0.5, 1])
+        glLightfv(GL_LIGHT1, GL_AMBIENT, [0.35, 0.4, 0.45, 1])
+        glLightfv(GL_LIGHT1, GL_DIFFUSE, [0.6, 0.65, 0.7, 1])
 
         # Projection
         glMatrixMode(GL_PROJECTION)
         gluPerspective(70, (self.display[0] / self.display[1]), 0.1, 100.0)
         glMatrixMode(GL_MODELVIEW)
 
-        # Disable fog for clearer visuals (was causing blur)
+        # Disable fog for clearer visuals
         glDisable(GL_FOG)
 
     def generate_new_maze(self):
@@ -253,7 +256,7 @@ class MazeGame:
         elif effect['type'] == 'speed_slow':
             self.show_notification("Slow Zone...", (100, 150, 255), 1.5)
         elif effect['type'] == 'speed_fast':
-            self.show_notification("SPEED BOOST!", (50, 255, 50), 1.5)
+            self.show_notification("SPEED BOOST!", (0, 255, 255), 1.5)
 
     def check_win_condition(self):
         """Check if player reached the goal"""
@@ -672,7 +675,7 @@ class MazeGame:
     def run(self):
         """Main game loop"""
         print("\n" + "="*60)
-        print("3D MAZE EXPLORER - COSC 4370 HW5")
+        print("GARDEN HEDGE MAZE - COSC 4370 HW5")
         print("="*60)
         print("\nControls:")
         print("  W/A/S/D - Move")
